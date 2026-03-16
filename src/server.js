@@ -8,8 +8,13 @@ import { PID_PATH } from './paths.js';
 import { hasPassword, setPassword, promptPassword, authMiddleware } from './auth.js';
 import { getDocumentCount } from './db.js';
 import { ingestDirectory } from './ingest.js';
+import cors from 'cors';
 import authRoutes from './routes/auth-routes.js';
 import apiRoutes from './routes/api.js';
+import { createApiKeyMiddleware } from './middleware/api-key.js';
+import v1Router from './routes/v1.js';
+import openapiRoute from './routes/openapi.js';
+import { mcpHttpHandler, mcpGetHandler } from './mcp-http.js';
 
 export async function start() {
   const port = parseInt(process.env.KB_PORT || '3838', 10);
@@ -51,7 +56,31 @@ export async function start() {
   app.use(authRoutes);
   app.use(apiRoutes);
 
-  // Fallback to index.html for SPA
+  // --- Brain API (external access via brain.yourdomain.com) ---
+  const corsMiddleware = cors({
+    origin: [
+      'https://claude.ai',
+      'https://chat.openai.com',
+      'https://chatgpt.com',
+      'https://gemini.google.com',
+      'https://kb.yourdomain.com',
+    ],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization', 'Mcp-Session-Id'],
+  });
+
+  const apiKeyAuth = createApiKeyMiddleware();
+
+  // Public (no auth): OpenAPI spec + health
+  app.get('/openapi.json', corsMiddleware, openapiRoute);
+  app.get('/api/v1/health', corsMiddleware, (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+
+  // Authenticated: v1 API + MCP HTTP
+  app.use('/api/v1', corsMiddleware, apiKeyAuth, v1Router);
+  app.post('/mcp', corsMiddleware, apiKeyAuth, mcpHttpHandler);
+  app.get('/mcp', corsMiddleware, apiKeyAuth, mcpGetHandler);
+
+  // Fallback to index.html for SPA (MUST remain LAST)
   app.get('*', (req, res) => {
     res.sendFile(join(__dirname, 'public', 'index.html'));
   });
