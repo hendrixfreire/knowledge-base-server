@@ -61,7 +61,7 @@ export function captureFix({ title, symptom, cause, resolution, commands, projec
 
   const date = new Date().toISOString().split('T')[0];
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50);
-  const filename = `${slug}.md`;
+  const filename = `${date}-${slug}.md`;
 
   const fm = [
     '---',

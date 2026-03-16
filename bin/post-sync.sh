@@ -15,7 +15,7 @@ curl -s -c "$COOKIE_JAR" "http://localhost:${KB_PORT}/api/login" \
   -H "Content-Type: application/json" \
   -d "{\"password\":\"${KB_PASSWORD}\"}" -o /dev/null 2>/dev/null
 
-TOKEN=$(grep kb_session "$COOKIE_JAR" 2>/dev/null | awk '{print $NF}')
+TOKEN=$(grep kb_session "$COOKIE_JAR" 2>/dev/null | awk '{print $NF}' || true)
 
 if [ -z "$TOKEN" ]; then
   echo "[post-sync] Warning: Could not authenticate with KB server"

@@ -49,10 +49,17 @@ export async function semanticSearch(query, { limit = 10, project, type } = {}) 
 export async function hybridSearch(query, { limit = 10, project, type } = {}) {
   const { searchDocuments } = await import('../db.js');
 
-  const [ftsResults, semanticResults] = await Promise.all([
-    Promise.resolve(searchDocuments(query, limit * 2)),
-    semanticSearch(query, { limit: limit * 2, project, type }),
-  ]);
+  let ftsResults, semanticResults;
+  try {
+    [ftsResults, semanticResults] = await Promise.all([
+      Promise.resolve(searchDocuments(query, limit * 2)),
+      semanticSearch(query, { limit: limit * 2, project, type }),
+    ]);
+  } catch {
+    // If semantic search fails (no embeddings, model error, etc.), fall back to FTS only
+    ftsResults = searchDocuments(query, limit * 2);
+    semanticResults = [];
+  }
 
   const seen = new Map();
 
