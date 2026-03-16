@@ -73,14 +73,22 @@ export async function start() {
   app.all('/api/auth/*', corsMiddleware, toNodeHandler(auth));
 
   // --- Well-known OAuth discovery endpoints ---
+  // These return Web Response objects, so we convert to Express responses
   const { oAuthDiscoveryMetadata, oAuthProtectedResourceMetadata } = await import('better-auth/plugins');
-  app.get('/.well-known/oauth-authorization-server', corsMiddleware, (req, res) => {
-    const handler = oAuthDiscoveryMetadata(auth);
-    return handler(req, res);
+  const discoveryHandler = oAuthDiscoveryMetadata(auth);
+  const resourceHandler = oAuthProtectedResourceMetadata(auth);
+
+  app.get('/.well-known/oauth-authorization-server', corsMiddleware, async (req, res) => {
+    const url = `${process.env.BETTER_AUTH_URL || 'https://brain.yourdomain.com'}${req.originalUrl}`;
+    const webRes = await discoveryHandler(new Request(url));
+    const data = await webRes.json();
+    res.json(data);
   });
-  app.get('/.well-known/oauth-protected-resource', corsMiddleware, (req, res) => {
-    const handler = oAuthProtectedResourceMetadata(auth);
-    return handler(req, res);
+  app.get('/.well-known/oauth-protected-resource', corsMiddleware, async (req, res) => {
+    const url = `${process.env.BETTER_AUTH_URL || 'https://brain.yourdomain.com'}${req.originalUrl}`;
+    const webRes = await resourceHandler(new Request(url));
+    const data = await webRes.json();
+    res.json(data);
   });
 
   // --- Sign-in page for OAuth consent flow ---
