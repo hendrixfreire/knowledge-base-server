@@ -7,22 +7,31 @@
   },
   "servers": [
     {
+      "url": "https://brain.cutdacord.app",
+      "description": "Production Brain API"
+    },
+    {
       "url": "http://localhost:3838",
-      "description": "Replace with your domain for remote access"
+      "description": "Local development"
     }
   ],
   "security": [
     {
-      "ApiKeyAuth": []
+      "BearerAuth": []
     }
   ],
   "components": {
     "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key as Bearer token. Use your KB_API_KEY_OPENAI value."
+      },
       "ApiKeyAuth": {
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "API key required for all endpoints except /api/v1/health"
+        "description": "Alternative: API key via X-API-Key header"
       }
     },
     "schemas": {
